@@ -31,13 +31,15 @@ def on_login(user_id):
 
 @app.route('/users')
 def get_users():
-    get_users_from_db()
+    res = get_users_from_db()
+    return res
     # Get all all user details
 
 
 @app.route('/user/<user_id>')
 def get_user(user_id):
-    get_user_from_db()
+    res = get_user_from_db(user_id)
+    return res
     # Get specific user info from user_id
 
 
@@ -80,22 +82,17 @@ def get_user_from_db(user_id):
     user_ref = db.collection('users').document(user_id)
     user = user_ref.get()
     if user.exists:
-        #print("User data: {}".format(user.to_dict()))
+        print(user)
         return user.to_dict()
     else:
-        #print('No such document')
         return {}
-    #user_stream = user_ref.stream()
-    # for user in user_stream:
-    #    print(f'{user_stream.id} => {user_stream.to_dict()}')
 
 
 def get_users_from_db():
     users_ref = db.collection('users')
     users_stream = users_ref.stream()
-
-    # for user in users_stream:
-    #    print(f'{user.id} => {user.tox_dict()}')
+    user_objects = [user.to_dict() for user in users_stream]
+    return user_objects
 
 def add_user_to_db(user):
     user_ref = db.collection('users').document(user.user_id)
@@ -158,18 +155,11 @@ def generate_league_id():
 
 
 def main():
-    res = add_user_to_db()
+    #res = get_user("1234")
+    res = get_users()
     print(res)
 
 
 if __name__ == '__main__':
     main()
-
-
-class User:
-    def __init__(self, uid, name, email):
-        super().__init__()
-        self.user_id = uid
-        self.name = name
-        self.email = email
 

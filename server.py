@@ -21,13 +21,12 @@ def create_user():
     req = request.args.get()
     add_user_to_db(req)
 
+
 @app.route('/login/<user_id>')
 def on_login(user_id):
     user = get_user_from_db(user_id)
     return user
     
-
-
 
 @app.route('/users')
 def get_users():
@@ -45,13 +44,15 @@ def get_user(user_id):
 
 @app.route('/bets/<date>')
 def get_bets(date):
-    get_bets_from_db(date)
+    res = get_bets_from_db(date)
+    return res
     # Get all playable bets for a specific date
 
 
 @app.route('/userbets/<user>/<date>')
 def get_userbets(user, date):
-    get_userbets_from_db(user, date)
+    res = get_userbets_from_db(user, date)
+    return res
     # Get the bet for a specific user on a specific date
 
 
@@ -61,6 +62,12 @@ def add_bets(date):
     add_bet_to_db(date, bets)
     # Add new bets for a specific date
     # Data for the bets comes from form
+
+
+@app.route('/userbets/add/<user>/<date>')
+def add_userbets(user, date):
+    userbets = request.args.get()
+    add_userbets_to_db(user, date, userbets)
 
 
 @app.route('/leagues/<league_id>')
@@ -106,47 +113,56 @@ def add_user_to_db(user):
 
 def get_bets_from_db(date):
     bets_ref = db.collection('bets').document(date)
-    print(bets_ref)
-    bets_stream = bets_ref.stream()
-
-    # for bet in bets_stream:
-    #    print(f'{bet.id} => {bet.to_dict()}')
+    bets = bets_ref.get()
+    if bets.exists:
+        return bets.to_dict()
+    else:
+        return {}
 
 
 def get_userbets_from_db(user_id, date):
-    userbets_ref = db.collection('userbets').document(user_id).collection(date)
-    userbets_stream = userbets_ref.stream()
+    userbets_ref = db.collection('users').document(user_id).collection('bets').document(date)
+    userbets = userbets_ref.get()
+    if userbets.exists:
+        return userbets.to_dict()
+    else:
+        return {}
 
 
 def add_bet_to_db(date, bets):
     bet_ref = db.collection('bets').document(date)
     bet_ref.set(bets)
 
+def add_userbets_to_db(user_id, date, bets):
+    userbets_ref = db.collection('users').document(user_id).collection('bets').document(date)
+    userbets_ref.set(bets)
+
 
 def get_league_from_db(league_id):
-    league_ref = db.collection('Leagues').document(league_id)
-    league_stream = league_ref.stream()
+    league_ref = db.collection('leagues').document(league_id)
+    league = league_ref.get()
+    if league.exists:
+        return league.to_dict()
+    else:
+        return {}
 
-    # for league in league_stream:
-    #    print(f'{league.id} => {league.to_dict()}')
 
-
-def add_league_to_db(user_id):
+def add_league_to_db(user_id, league_name):
     league_id = generate_league_id()
-    league_ref = db.collection('Leagues').document(league_id)
+    league_ref = db.collection('leagues').document(league_id)
     league_ref.set({
-        'id': league_id,
-        'owner': user_id,
-        'members': [user_id]
+        u'id': league_id,
+        u'owner': user_id,
+        u'name': league_name,
+        u'members': [user_id]
     })
+    user_ref = db.collection('users').document(user_id)
+    user_ref.update({u'leagues': firestore.ArrayUnion([league_id])})
 
 
 def add_league_member_to_db(user_id, league_id):
-    league_ref = db.collection('Leagues').document(league_id)
-    league_stream = db.collection('Leagues').document(league_id)
-
-    # for league in league_stream:
-    #    print(f'{league.id} => {league.to_dict()}')
+    league_ref = db.collection('leagues').document(league_id)
+    league_ref.update({u'members': firestore.ArrayUnion([user_id])})
 
 
 ##### Helper functions #####
@@ -155,8 +171,7 @@ def generate_league_id():
 
 
 def main():
-    #res = get_user("1234")
-    res = get_users()
+    res = get_league_from_db('uhJ85rcI')
     print(res)
 
 
